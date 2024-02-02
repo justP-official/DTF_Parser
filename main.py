@@ -9,7 +9,7 @@ import undetected_chromedriver as uc
 
 from bs4 import BeautifulSoup
 
-from classes.parser import Parser
+from classes.parser.parser import Parser
 
 from classes.post.post import Post
 

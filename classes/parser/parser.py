@@ -10,7 +10,7 @@ from selenium.webdriver.common.keys import Keys
 
 from bs4 import BeautifulSoup
 
-from .post.post import Post
+from classes.post.post import Post
 
 
 class Parser:
