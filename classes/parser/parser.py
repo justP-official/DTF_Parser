@@ -64,7 +64,9 @@ class Parser:
             post = BeautifulSoup(data.get_attribute("innerHTML"), "lxml")
 
             try:
-                post_title = re.sub(r"\n+Статьи редакции", "", post.find("div", class_="content-title").text.strip())
+                post_title = re.sub(r"\n+Статьи редакции", "",
+                                    post.find("div", class_="content-title").text.strip()
+                                    )
             except AttributeError:
                 post_title = "---"
 
