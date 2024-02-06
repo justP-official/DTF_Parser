@@ -2,11 +2,9 @@ import re
 
 from datetime import datetime
 
-import undetected_chromedriver as uc
+import requests
 
-from selenium.webdriver.common.by import By
-
-from selenium.webdriver.common.keys import Keys
+from fake_useragent import UserAgent
 
 from bs4 import BeautifulSoup
 
@@ -14,94 +12,93 @@ from classes.post.post import Post
 
 
 class Parser:
-    def __init__(self, root_url):
-        self.__root_url = root_url
+    def __init__(self, query):
+        self.query = query
 
-        self.row_data = set()
-        self.useful_data = set()
+        self.__session = requests.Session()
 
-        self.__browser = uc.Chrome(enable_cdp_events=True, options=self.set_options())
+        self.row_data = []
+        self.useful_data = []
+
+    @property
+    def session(self):
+        return self.__session
 
     @staticmethod
-    def set_options():
-        options = uc.ChromeOptions()
-        options.headless = True
+    def get_headers():
+        headers = {
+            "Cookie": 'pwa_disabled=always;',
+            "User-agent": f'{UserAgent.random}',
+            "X-Kl-Kfa-Ajax-Request": 'Ajax_Request'
+        }
 
-        return options
+        return headers
 
     def connect(self):
-        self.__browser.get(self.__root_url)
+        print("Подключение...")
+        response = self.session.get(
+            f'https://dtf.ru/search_ajax/v2/content/relevant/1?query={self.query}&mode=raw',
+            headers=self.get_headers())
 
-    def search(self, query):
-        find_field = self.__browser.find_element(By.CSS_SELECTOR, '.text-input')
-        find_field.click()
+        return 'application/json' in response.headers.get('content-type') and response.json()['data']['counters']['entries'] > 0
 
-        self.__browser.implicitly_wait(5)
-        find_field.send_keys(query, Keys.ENTER)
+    def search(self):
+        if self.connect():
+            print("Собираем данные...\n")
 
-        self.__browser.find_elements(By.CSS_SELECTOR, 'a.popover-option.popover-option--with-art')[-1].click()
+            counter = 1
 
-        self.__browser.switch_to.window(self.__browser.window_handles[1])
+            while True:
+                print(f"Часть номер: {counter}")
 
-    def select_data(self):
-        print("Собираем данные...\n")
+                data = self.session.get(
+                    f'https://dtf.ru/search_ajax/v2/content/relevant/{str(counter)}?query={self.query}&mode=raw',
+                    headers=self.get_headers()).json()
 
-        counter = int(self.__browser.find_element(By.CSS_SELECTOR, ".v-tab--active .v-tab__counter").text)
+                soup = BeautifulSoup(data['data']['feed_html'], 'lxml')
 
-        print(f"Найдено постов: {counter}\n")
+                posts = soup.findAll('div', class_="content-feed")
+                self.row_data += posts
+                # self.row_data.append(data['data']['feed_html'])
 
-        self.row_data.update(set(self.__browser.find_elements(By.CSS_SELECTOR, ".content-feed")))
+                if not data['data']['is_finished']:
+                    counter += 1
+                else:
+                    break
 
-        while len(self.row_data) < counter:
-            self.__browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            search_chunk = self.__browser.find_elements(By.CSS_SELECTOR, ".search_results__chunk")[-1]
-            self.row_data.update(set(search_chunk.find_elements(By.CSS_SELECTOR, '.content-feed')))
+            print(len(self.row_data))
 
     def parse_data(self):
         print("Парсим данные...\n")
 
         for data in self.row_data:
-            post = BeautifulSoup(data.get_attribute("innerHTML"), "lxml")
 
             try:
                 post_title = re.sub(r"\n+Статьи редакции", "",
-                                    post.find("div", class_="content-title").text.strip()
+                                    data.find("div", class_="content-title").text.strip()
                                     )
             except AttributeError:
                 post_title = "---"
 
-            post_link = post.find("a", class_="content-link").get("href")
+            post_link = data.find("a", class_="content-link").get("href")
 
             # Если статья выложена в подсайт
             try:
-                post_author = post.find("a", class_="content-header-author__name").text.strip()
+                post_author = data.find("a", class_="content-header-author__name").text.strip()
             # Если статья выложена не в подсайт
             except AttributeError:
-                post_author = post.find("div", class_="content-header-author__name").text.strip()
+                post_author = data.find("div", class_="content-header-author__name").text.strip()
 
             post_date = datetime.strptime(
-                post.find("time", class_="time").get("title").replace(" (Europe/Moscow)", ''),
+                data.find("time", class_="time").get("title").replace(" (Europe/Moscow)", ''),
                 '%d.%m.%Y %H:%M:%S'
             )
 
-            try:
-                post_likes_count = int(post.find(class_="like-button__count").text)
-            except AttributeError:
-                post_likes_count = 0
-
-            post_comments_count = int(post.find("span", class_="comments_counter__count__value").text)
-
-            self.useful_data.add(
-                Post(post_title, post_link, post_author, post_date, post_likes_count, post_comments_count)
+            self.useful_data.append(
+                Post(post_title, post_link, post_author, post_date)
             )
 
     def execute(self):
-        self.connect()
-
-        self.search(input("Введите поисковый запрос: "))
-
-        self.select_data()
+        self.search()
 
         self.parse_data()
-
-        self.__browser.quit()

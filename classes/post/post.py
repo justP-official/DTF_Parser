@@ -8,8 +8,6 @@ class Post:
     link: str
     author: str
     publishing_date: datetime
-    likes_count: int
-    comments_count: int
 
     def __str__(self):
-        return f"{self.title}, {self.link}, {self.author}, {self.publishing_date}, {self.likes_count}, {self.comments_count}"
+        return f"{self.title}, {self.link}, {self.author}, {self.publishing_date}"
