@@ -59,7 +59,6 @@ class Parser:
 
                 posts = soup.findAll('div', class_="content-feed")
                 self.row_data += posts
-                # self.row_data.append(data['data']['feed_html'])
 
                 if not data['data']['is_finished']:
                     counter += 1
@@ -72,6 +71,7 @@ class Parser:
         print("Парсим данные...\n")
 
         for data in self.row_data:
+            # print(data.text)
 
             try:
                 post_title = re.sub(r"\n+Статьи редакции", "",
@@ -94,8 +94,13 @@ class Parser:
                 '%d.%m.%Y %H:%M:%S'
             )
 
+            post_likes_count = int(re.search(r'"count_likes":(\d+)', data.text).group(1))
+
+            post_comments_count = int(re.search(r'"count":(\d+)', data.text).group(1))
+
+
             self.useful_data.append(
-                Post(post_title, post_link, post_author, post_date)
+                Post(post_title, post_link, post_author, post_date, post_likes_count, post_comments_count)
             )
 
     def execute(self):
