@@ -1,10 +1,4 @@
-import time
-
-from bs4 import BeautifulSoup
-
 from classes.parser.parser import Parser
-
-from classes.post.post import Post
 
 if __name__ == '__main__':
     p = Parser(input('Введите поисковый запрос: '))

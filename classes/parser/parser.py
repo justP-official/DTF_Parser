@@ -18,6 +18,7 @@ class Parser:
         self.prompt = prompt
 
         self.__session = requests.Session()
+        self.session.headers.update(self.get_headers())
 
         self.filters = self.set_filters()
 
@@ -97,7 +98,7 @@ class Parser:
 
     @staticmethod
     def connect(response):
-        print("Подключение...")
+        print("Подключение...\n")
 
         return 'application/json' in response.headers.get('content-type')
 
@@ -110,15 +111,19 @@ class Parser:
         while True:
             url = f"https://dtf.ru/search_ajax/v2/content/{self.build_query(counter)}"
 
-            response = self.session.get(url, headers=self.get_headers())
+            response = self.session.get(url)
 
             if counter == 1:
                 if not self.connect(response):
                     break
 
-            print(f"Часть номер: {counter}")
-
             data = response.json()
+
+            if data['data']['counters']['entries'] == 0:
+                print("Ничего не найдено...\n")
+                break
+
+            print(f"Часть номер: {counter}")
 
             soup = BeautifulSoup(data['data']['feed_html'], 'lxml')
 
@@ -131,11 +136,10 @@ class Parser:
                 break
 
     def parse_data(self):
-        print("Парсим данные...\n")
+        if len(self.row_data) > 0:
+            print("Парсим данные...\n")
 
         for data in self.row_data:
-            # print(data.text)
-
             try:
                 post_title = re.sub(r"\n+Статьи редакции", "",
                                     data.find("div", class_="content-title").text.strip()
