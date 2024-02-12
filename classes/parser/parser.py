@@ -22,7 +22,6 @@ class Parser:
 
         self.filters = self.set_filters()
 
-        self.row_data = []
         self.useful_data = []
 
     @property
@@ -128,18 +127,18 @@ class Parser:
             soup = BeautifulSoup(data['data']['feed_html'], 'lxml')
 
             posts = soup.findAll('div', class_="content-feed")
-            self.row_data += posts
+            self.parse_data(posts)
 
             if not data['data']['is_finished']:
                 counter += 1
             else:
                 break
 
-    def parse_data(self):
-        if len(self.row_data) > 0:
+    def parse_data(self, row_data):
+        if len(row_data) > 0:
             print("Парсим данные...\n")
 
-        for data in self.row_data:
+        for data in row_data:
             try:
                 post_title = re.sub(r"\n+Статьи редакции", "",
                                     data.find("div", class_="content-title").text.strip()
@@ -168,8 +167,3 @@ class Parser:
             self.useful_data.append(
                 Post(post_title, post_link, post_author, post_date, post_likes_count, post_comments_count)
             )
-
-    def execute(self):
-        self.search()
-
-        self.parse_data()
