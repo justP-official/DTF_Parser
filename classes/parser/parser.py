@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from classes.post.post import Post
 
 from classes.question.question import Question
+from classes.question.bool_question import BoolQuestion
 
 
 class Parser:
@@ -33,7 +34,7 @@ class Parser:
         headers = {
             "Cookie": 'pwa_disabled=always;',
             "User-agent": f'{UserAgent.chrome}',
-            'accept': 'application/json',
+            "accept": 'application/json',
             "X-Kl-Kfa-Ajax-Request": 'Ajax_Request'
         }
 
@@ -49,12 +50,11 @@ class Parser:
             'blog': '',               # если Личный блог, то '&blog=1', иначе ''
         }
 
-        is_advanced_search = Question(
+        is_advanced_search = BoolQuestion(
             'Использовать расширенный поиск?\n1. Да;\n2. Нет;',
-            'is_advanced',
-            (True, False)).give_response()
+            'is_advanced')
 
-        if is_advanced_search['is_advanced']:
+        if is_advanced_search:
             questions = (
                 Question(
                     'Как сортировать записи?\n1. По релевантности;\n2. По дате;',
@@ -160,9 +160,15 @@ class Parser:
                 '%d.%m.%Y %H:%M:%S'
             )
 
-            post_likes_count = int(re.search(r'"count_likes":(\d+)', data.text).group(1))
+            try:
+                post_likes_count = int(re.search(r'"count_likes":(\d+)', data.text).group(1))
+            except AttributeError:
+                post_likes_count = 0
 
-            post_comments_count = int(re.search(r'"count":(\d+)', data.text).group(1))
+            try:
+                post_comments_count = int(re.search(r'"count":(\d+)', data.text).group(1))
+            except AttributeError:
+                post_comments_count = 0
 
             self.useful_data.append(
                 Post(post_title, post_link, post_author, post_date, post_likes_count, post_comments_count)

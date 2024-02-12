@@ -12,4 +12,4 @@ class Post:
     comments_count: int
 
     def __str__(self):
-        return f"{self.title}, {self.link}, {self.author}, {self.publishing_date}, {self.likes_count}, {self.comments_count}"
+        return f"{self.title};{self.link};{self.author};{self.publishing_date};{self.likes_count};{self.comments_count}"

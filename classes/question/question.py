@@ -20,3 +20,10 @@ class Question:
 
     def __str__(self):
         return self.text
+
+
+
+# pq = PromptQuestion('Изменить имя файла по умолчанию?\n1. Да;\n2. Нет;',
+#                     'is_rename')
+#
+# print(pq.give_prompt())
